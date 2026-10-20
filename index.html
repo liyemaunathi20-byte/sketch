@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3ee">
+  <title>HabitTrack</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f3ee;
+      --surface: #fffefa;
+      --ink: #202c28;
+      --muted: #78817b;
+      --line: #e4e5dc;
+      --green: #28594a;
+      --green-soft: #e4eee7;
+      --coral: #d96d50;
+      --coral-soft: #f8e8e1;
+      --sun: #e2ad48;
+      --shadow: 0 12px 32px rgba(36, 48, 40, .055);
+      font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #202b27;
+      --surface: #293632;
+      --ink: #eff1e9;
+      --muted: #a6b0a8;
+      --line: #3b4841;
+      --green: #83b89e;
+      --green-soft: #33483d;
+      --coral: #ee9478;
+      --coral-soft: #523a34;
+      --sun: #e2bd68;
+      --shadow: 0 12px 32px rgba(0, 0, 0, .12);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .topbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(20px, calc((100vw - 760px) / 2));
+      border-bottom: 1px solid rgba(32, 44, 40, .09);
+      background: rgba(255, 254, 250, .72);
+    }
+    .top-actions { display: flex; align-items: center; }
+    .theme-toggle {
+      width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+      border: 1px solid var(--line); border-radius: 50%; background: var(--surface);
+      cursor: pointer; font-size: 16px;
+    }
+    .theme-toggle:focus-visible { outline: 3px solid rgba(217, 109, 80, .35); outline-offset: 2px; }
+    :root[data-theme="dark"] .topbar { background: rgba(32, 43, 39, .88); }
+    :root[data-theme="dark"] .add-form input { background: #222e29; border-color: var(--line); }
+    :root[data-theme="dark"] .streak { color: #efb18b; }
+    .brand { font-size: 16px; font-weight: 750; letter-spacing: .01em; }
+
+    main { width: min(100% - 40px, 760px); margin: 28px auto 64px; }
+
+    .add-panel {
+      display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px;
+      padding: 13px 14px; margin-bottom: 12px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 6px;
+    }
+    .add-copy h2 { margin: 0; font-size: 14px; font-weight: 700; }
+    .add-form { display: flex; min-width: 0; gap: 8px; }
+    .add-form input {
+      min-width: 0; flex: 1; height: 38px; padding: 0 10px; color: var(--ink);
+      background: #fbfbf7; border: 1px solid #dfe2d9; border-radius: 4px; outline: none;
+    }
+    .add-form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(40, 89, 74, .12); }
+    .add-form input::placeholder { color: #9a9f98; }
+    .add-form button {
+      height: 38px; padding: 0 14px; border: 0; border-radius: 4px;
+      background: var(--green); color: white; font-weight: 700; cursor: pointer;
+      transition: background .15s ease, transform .15s ease;
+    }
+    .add-form button:hover { background: #1e493b; }
+    .add-form button:active { transform: translateY(1px); }
+
+    .habit-list { display: grid; gap: 9px; }
+    .habit-row {
+      display: grid; gap: 12px; min-height: 84px; padding: 13px 14px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 6px;
+      animation: arrive .28s ease both;
+    }
+    @keyframes arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .habit-name { min-width: 0; display: flex; align-items: center; gap: 11px; }
+    .habit-dot { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 3px; background: var(--coral); }
+    .habit-row:nth-child(3n + 2) .habit-dot { background: var(--green); }
+    .habit-row:nth-child(3n) .habit-dot { background: var(--sun); }
+    .habit-title { min-width: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 700; }
+    .streak { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: #a55b2a; font-size: 13px; font-weight: 750; white-space: nowrap; }
+    .streak span { font-size: 14px; }
+    .remove {
+      width: 22px; height: 24px; padding: 0; margin-left: auto; border: 0; background: transparent;
+      color: #a5aaa3; font-size: 18px; line-height: 1; cursor: pointer; opacity: 0;
+    }
+    .habit-row:hover .remove, .remove:focus-visible { opacity: 1; }
+    .remove:hover { color: var(--coral); }
+
+    .check-row { display: grid; grid-template-columns: repeat(7, 26px); gap: 9px; }
+    .check-cell { display: grid; place-items: center; }
+    .check {
+      width: 26px; height: 26px; display: grid; place-items: center; padding: 0;
+      border: 1px solid #d8ddd4; border-radius: 4px; color: transparent; background: #fbfbf8;
+      cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .check:hover:not(:disabled) { border-color: var(--green); transform: translateY(-1px); }
+    .check[aria-pressed="true"] { color: white; background: var(--green); border-color: var(--green); }
+    .check:disabled { cursor: default; opacity: .42; }
+    .check:focus-visible, .remove:focus-visible, .add-form button:focus-visible { outline: 3px solid rgba(217, 109, 80, .35); outline-offset: 2px; }
+    .check svg { width: 14px; height: 14px; }
+    .empty { padding: 34px 20px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed #d6dbd1; border-radius: 7px; }
+    .empty strong { display: block; margin-bottom: 5px; color: var(--ink); font: 500 19px Georgia, "Times New Roman", serif; }
+    .summary { display: flex; align-items: center; justify-content: space-between; padding: 17px 3px 0; color: var(--muted); font-size: 12px; }
+    .summary strong { color: var(--green); }
+
+    @media (max-width: 480px) {
+      .topbar { height: 58px; padding: 0 16px; }
+      main { width: calc(100% - 28px); margin: 18px auto 48px; }
+      .add-panel { grid-template-columns: auto minmax(0, 1fr); gap: 9px; padding: 10px; }
+      .add-copy h2 { font-size: 13px; }
+      .add-form { gap: 6px; }
+      .add-form input { padding: 0 8px; }
+      .add-form button { padding: 0 10px; }
+      .habit-row { min-height: 78px; padding: 11px 12px; }
+      .habit-name { gap: 8px; }
+      .remove { opacity: 1; }
+      .check-row { gap: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">HabitTrack</div>
+    <div class="top-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch theme">🌙</button>
+    </div>
+  </header>
+  <main>
+    <section class="add-panel" aria-labelledby="add-title">
+      <div class="add-copy">
+        <h2 id="add-title">Add Habit</h2>
+      </div>
+      <form class="add-form" id="add-form">
+        <input id="habit-input" name="habit" type="text" maxlength="48" placeholder="e.g. Take a walk" aria-label="New habit name" required>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section aria-label="Weekly habit tracker">
+      <div class="habit-list" id="habit-list" aria-live="polite"></div>
+      <div class="summary" id="summary"></div>
+    </section>
+  </main>
+  <script>
+    const storageKey = "habittrack.v1";
+    const themeKey = "habittrack.theme";
+    const themeToggle = document.querySelector("#theme-toggle");
+    const savedTheme = localStorage.getItem(themeKey);
+    if (savedTheme === "dark") document.documentElement.dataset.theme = "dark";
+    themeToggle.addEventListener("click", () => {
+      const isDark = document.documentElement.dataset.theme !== "dark";
+      document.documentElement.dataset.theme = isDark ? "dark" : "light";
+      themeToggle.textContent = isDark ? "☀️" : "🌙";
+      themeToggle.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} theme`);
+      themeToggle.setAttribute("aria-pressed", String(isDark));
+      localStorage.setItem(themeKey, isDark ? "dark" : "light");
+    });
+    if (savedTheme === "dark") {
+      themeToggle.textContent = "☀️";
+      themeToggle.setAttribute("aria-label", "Switch to light theme");
+      themeToggle.setAttribute("aria-pressed", "true");
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    function dateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function shiftDate(date, amount) {
+      const shifted = new Date(date);
+      shifted.setDate(shifted.getDate() + amount);
+      return shifted;
+    }
+
+    function getWeekDates() {
+      const mondayOffset = (today.getDay() + 6) % 7;
+      return Array.from({ length: 7 }, (_, index) => shiftDate(today, index - mondayOffset));
+    }
+
+    const weekDates = getWeekDates();
+    const longDate = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+    function starterHabits() {
+      return [
+        { id: crypto.randomUUID(), name: "Exercise", completions: [3, 2, 1].map(daysAgo => dateKey(shiftDate(today, -daysAgo))) },
+        { id: crypto.randomUUID(), name: "Reading", completions: [5, 4, 3, 2, 1].map(daysAgo => dateKey(shiftDate(today, -daysAgo))) }
+      ];
+    }
+
+    function loadHabits() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (Array.isArray(saved) && saved.every(habit => habit && typeof habit.id === "string" && typeof habit.name === "string" && Array.isArray(habit.completions))) return saved;
+      } catch { /* Use starter habits when storage is unavailable or invalid. */ }
+      return starterHabits();
+    }
+
+    let habits = loadHabits();
+    const checkIcon = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function saveHabits() {
+      try { localStorage.setItem(storageKey, JSON.stringify(habits)); } catch { /* Keep the current session usable without storage. */ }
+    }
+
+    function streakFor(habit) {
+      const completed = new Set(habit.completions);
+      let streak = 0;
+      let date = completed.has(dateKey(today)) ? today : shiftDate(today, -1);
+      while (completed.has(dateKey(date))) {
+        streak += 1;
+        date = shiftDate(date, -1);
+      }
+      return streak;
+    }
+
+    function render() {
+      const list = document.querySelector("#habit-list");
+      list.replaceChildren();
+      if (habits.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.innerHTML = "<strong>A fresh start.</strong>Your next habit can begin here.";
+        list.append(empty);
+      }
+
+      habits.forEach(habit => {
+        const row = document.createElement("article");
+        row.className = "habit-row";
+        const titleCell = document.createElement("div");
+        titleCell.className = "habit-name";
+        const dot = document.createElement("span");
+        dot.className = "habit-dot";
+        dot.setAttribute("aria-hidden", "true");
+        const title = document.createElement("span");
+        title.className = "habit-title";
+        title.textContent = habit.name;
+        const streak = document.createElement("span");
+        streak.className = "streak";
+        streak.setAttribute("aria-label", `${streakFor(habit)} day streak`);
+        streak.innerHTML = `<span aria-hidden="true">🔥</span>${streakFor(habit)}`;
+        const checkRow = document.createElement("div");
+        checkRow.className = "check-row";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", `Remove ${habit.name}`);
+        remove.title = `Remove ${habit.name}`;
+        remove.addEventListener("click", () => {
+          habits = habits.filter(item => item.id !== habit.id);
+          saveHabits();
+          render();
+        });
+        titleCell.append(dot, title, streak, remove);
+
+        weekDates.forEach(date => {
+          const key = dateKey(date);
+          const complete = habit.completions.includes(key);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "check";
+          button.setAttribute("aria-pressed", String(complete));
+          button.setAttribute("aria-label", `${complete ? "Unmark" : "Mark"} ${habit.name} complete for ${longDate.format(date)}`);
+          button.title = `${habit.name}: ${longDate.format(date)}`;
+          button.innerHTML = checkIcon;
+          button.disabled = date > today;
+          button.addEventListener("click", () => {
+            habit.completions = complete
+              ? habit.completions.filter(completion => completion !== key)
+              : [...habit.completions, key];
+            saveHabits();
+            render();
+          });
+          const cell = document.createElement("div");
+          cell.className = "check-cell";
+          cell.append(button);
+          checkRow.append(cell);
+        });
+        row.append(titleCell, checkRow);
+        list.append(row);
+      });
+
+      const doneToday = habits.filter(habit => habit.completions.includes(dateKey(today))).length;
+      const summary = document.querySelector("#summary");
+      summary.innerHTML = `<span><strong>${doneToday} of ${habits.length}</strong> habits today</span><span>${habits.length ? Math.round(doneToday / habits.length * 100) : 0}% complete</span>`;
+    }
+
+    document.querySelector("#add-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const input = document.querySelector("#habit-input");
+      const name = input.value.trim();
+      if (!name) return;
+      habits.push({ id: crypto.randomUUID(), name, completions: [] });
+      saveHabits();
+      input.value = "";
+      render();
+      input.focus();
+    });
+
+    render();
+  </script>
+</body>
+</html>
